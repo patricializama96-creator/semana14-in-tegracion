@@ -1,0 +1,89 @@
+@host = http://127.0.0.1:8000/api
+
+### 1a. Login Ana (espera 201)
+# @name loginAna
+POST {{host}}/login
+Accept: application/json
+Content-Type: application/json
+
+{ "email": "ana@taskboard.test", "password": "password123", "dispositivo": "rest-ana" }
+
+### 1b. Login Carlos (espera 201)
+# @name loginCarlos
+POST {{host}}/login
+Accept: application/json
+Content-Type: application/json
+
+{ "email": "carlos@taskboard.test", "password": "password123", "dispositivo": "rest-carlos" }
+
+### 2. Login con clave incorrecta (espera 422)
+POST {{host}}/login
+Accept: application/json
+Content-Type: application/json
+
+{ "email": "ana@taskboard.test", "password": "incorrecta", "dispositivo": "rest-ana" }
+
+@tokenAna = {{loginAna.response.body.token}}
+@tokenCarlos = {{loginCarlos.response.body.token}}
+
+### 3. Sin token (espera 401)
+GET {{host}}/comercios
+Accept: application/json
+
+### 3b. Sin token y SIN Accept (espera 302 / HTML)
+GET {{host}}/comercios
+
+### 4. Yo Ana (espera 200, Ana López)
+GET {{host}}/yo
+Accept: application/json
+Authorization: Bearer {{tokenAna}}
+
+### 4b. Yo Carlos (espera 200, Carlos)
+GET {{host}}/yo
+Accept: application/json
+Authorization: Bearer {{tokenCarlos}}
+
+### 5. Comercios de Ana (espera 200, 2 comercios)
+GET {{host}}/comercios
+Accept: application/json
+Authorization: Bearer {{tokenAna}}
+
+### 6. Comercios de Carlos (espera 200, 1 comercio)
+GET {{host}}/comercios
+Accept: application/json
+Authorization: Bearer {{tokenCarlos}}
+
+### 7. Ana pide el comercio 2 (espera 404)
+GET {{host}}/comercios/2
+Accept: application/json
+Authorization: Bearer {{tokenAna}}
+
+### 8. Ana crea en comercio de Carlos (espera 422)
+POST {{host}}/transacciones
+Accept: application/json
+Content-Type: application/json
+Authorization: Bearer {{tokenAna}}
+
+{ "comercio_id": 2, "cliente_nombre": "Prueba", "monto": 10 }
+
+### 9a. Transacciones de Ana (para sacar un id)
+# @name transAna
+GET {{host}}/transacciones
+Accept: application/json
+Authorization: Bearer {{tokenAna}}
+
+### 9b. Carlos borra una transacción de Ana (espera 404)
+# Envía antes la 9a: el id se toma de su respuesta
+DELETE {{host}}/transacciones/{{transAna.response.body.$.data[0].id}}
+Accept: application/json
+Authorization: Bearer {{tokenCarlos}}
+
+### 10a. Logout de Ana (espera 204). ENVIAR AL FINAL
+POST {{host}}/logout
+Accept: application/json
+Authorization: Bearer {{tokenAna}}
+
+### 10b. Yo con el token revocado (espera 401)
+GET {{host}}/yo
+Accept: application/json
+Authorization: Bearer {{tokenAna}}

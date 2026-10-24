@@ -1,0 +1,192 @@
+@host = http://127.0.0.1:8000/api
+
+### 1. Listar comercios
+GET {{host}}/comercios
+Accept: application/json
+
+### 2. Detalle de un comercio (con transacciones)
+GET {{host}}/comercios/1
+Accept: application/json
+
+### 3. Comercio inexistente (debe dar 404 en JSON)
+GET {{host}}/comercios/999
+Accept: application/json
+
+### 4. Listar transacciones
+GET {{host}}/transacciones
+Accept: application/json
+
+### 5. Crear con datos válidos (201)
+POST {{host}}/transacciones
+Accept: application/json
+Content-Type: application/json
+
+{
+  "comercio_id": 1,
+  "cliente_nombre": "Luis Mena",
+  "monto": 25.50,
+  "estado": "Iniciada"
+}
+
+### 6. Crear con datos inválidos (422)
+POST {{host}}/transacciones
+Accept: application/json
+Content-Type: application/json
+
+{ "comercio_id": 1, "monto": -5 }
+
+### 7. Eliminar (cambia el 4 por el id que devolvió la petición 5)
+DELETE {{host}}/transacciones/4
+Accept: application/json
+
+### 7b. Eliminar otra vez (debe dar 404)
+DELETE {{host}}/transacciones/4
+Accept: application/json
+
+### 8. Inválido SIN Accept (302, Lab 8)
+POST {{host}}/transacciones
+Content-Type: application/json
+
+{ "comercio_id": 1, "monto": -5 }
+
+### 9. Reto: filtrar por estado
+GET {{host}}/transacciones?estado=Completada
+Accept: application/json
+
+### 10. Reto: filtro sin resultados (200 y data vacío)
+GET {{host}}/transacciones?estado=Inexistente
+Accept: application/json
+
+
+### 11. Login de Ana (201 + token)
+# @name login
+POST {{host}}/login
+Accept: application/json
+Content-Type: application/json
+
+{ "email": "ana@taskboard.test", "password": "password123", "dispositivo": "rest-client" }
+
+### 12. Quién soy (200)
+@token = {{login.response.body.token}}
+
+GET {{host}}/yo
+Accept: application/json
+Authorization: Bearer {{token}}
+
+
+### 13. Login con clave incorrecta (422)
+POST {{host}}/login
+Accept: application/json
+Content-Type: application/json
+
+{ "email": "ana@taskboard.test", "password": "incorrecta", "dispositivo": "rest-client" }
+
+### 14. Con Accept y con token (200)
+GET {{host}}/comercios
+Accept: application/json
+Authorization: Bearer {{token}}
+
+### 15. Con Accept y SIN token (401)
+GET {{host}}/comercios
+Accept: application/json
+
+### 16. SIN Accept y SIN token (302 o HTML)
+GET {{host}}/comercios
+
+### 17. Ana pide comercio de Carlos (404)
+GET {{host}}/comercios/2
+Accept: application/json
+Authorization: Bearer {{token}}
+
+
+### 18. Login de Carlos
+# @name loginCarlos
+POST {{host}}/login
+Accept: application/json
+Content-Type: application/json
+
+{ "email": "carlos@taskboard.test", "password": "password123", "dispositivo": "rest-client-carlos" }
+
+### 19. Comercios de Carlos (solo Ferretería El Tornillo)
+@tokenCarlos = {{loginCarlos.response.body.token}}
+
+GET {{host}}/comercios
+Accept: application/json
+Authorization: Bearer {{tokenCarlos}}
+
+### 20. Ana: sus transacciones (200, solo comercios 1 y 3)
+GET {{host}}/transacciones
+Accept: application/json
+Authorization: Bearer {{token}}
+
+### 21. Transacciones de Carlos (para sacar un id)
+GET {{host}}/transacciones
+Accept: application/json
+Authorization: Bearer {{tokenCarlos}}
+
+### 22. Ana pide una transacción de Carlos (404)
+# Cambia el 5 por un id que salió en la petición 21
+GET {{host}}/transacciones/5
+Accept: application/json
+Authorization: Bearer {{token}}
+
+### 23. Ana crea en comercio de Carlos (422)
+POST {{host}}/transacciones
+Accept: application/json
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+{ "comercio_id": 2, "cliente_nombre": "Prueba", "monto": 10 }
+
+### 24. Ana crea en su propio comercio (201)
+POST {{host}}/transacciones
+Accept: application/json
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+{ "comercio_id": 1, "cliente_nombre": "Luis Mena", "monto": 25.50 }
+
+### 25. Carlos crea una transacción en su comercio (201)
+POST {{host}}/transacciones
+Accept: application/json
+Content-Type: application/json
+Authorization: Bearer {{tokenCarlos}}
+
+{ "comercio_id": 2, "cliente_nombre": "Pedro Gomez", "monto": 30 }
+
+
+### 26. Ana pide la transacción de Carlos (404)
+GET {{host}}/transacciones/7
+Accept: application/json
+Authorization: Bearer {{token}}
+
+### 27. Ana intenta borrar la transacción de Carlos (404)
+DELETE {{host}}/transacciones/7
+Accept: application/json
+Authorization: Bearer {{token}}
+
+
+### 28. Lab 8: Cerrar sesión de Ana
+POST {{host}}/logout
+Accept: application/json
+Authorization: Bearer {{token}}
+
+### 29. Lab 8: Comprobar token revocado
+GET {{host}}/yo
+Accept: application/json
+Authorization: Bearer {{token}}
+
+### 30. Lab 12: listar dispositivos con sesión abierta
+GET {{host}}/tokens
+Accept: application/json
+Authorization: Bearer {{token}}
+
+### 31. Lab 12: listar dispositivos SIN token (debe dar 401)
+GET {{host}}/tokens
+Accept: application/json
+
+
+### 32. Lab 12: cerrar sesión de un dispositivo específico
+DELETE {{host}}/tokens/1
+Accept: application/json
+Authorization: Bearer {{token}}
